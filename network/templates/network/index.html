@@ -1,0 +1,40 @@
+{% extends "network/layout.html" %}
+
+{% block body %}
+        {% if user.is_authenticated %}
+        <div id="new-post-view">
+            <form id='submit-post' method="post" action="submit_post">
+                {% csrf_token %}
+                <h3>New post</h3>
+                <textarea name="post-content" id="post-content"></textarea>
+                <input type="submit" class="btn btn-primary" id="new-post-btn" value="Submit Post">
+            </form>
+        </div>
+    {% endif %}
+
+    {% if posts %}
+        {% for post in posts %}
+            <div class="post-item" id="post-id-{{post.id}}">
+                <div class="post-item-header">
+                    <a class="post-item-author" href="{% url 'profile' profile_id=post.author.id %}">{{ post.author }}</a>
+                    <div class="post-item-timestamp">{{ post.timestamp }}</div>
+                </div>
+                <div class="post-item-content">{{ post.content }}</div>
+                <div class="post-item-meta">
+                    <div class="post-item-meta-likes" id="post-item-meta-likes-{{post.id}}">{{ post.likes_count }}</div>
+                    <button class="post-item-meta-like-btn" onclick="like_post({{post.id}})" id="post-item-meta-like-btn-{{post.id}}" >
+                    {% if post.liked %}
+                        &#128078;
+                    {% else %}
+                        &#128077;
+                    {% endif %}
+                    </button>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+    No posts found
+    {% endif %}
+
+
+{% endblock %}

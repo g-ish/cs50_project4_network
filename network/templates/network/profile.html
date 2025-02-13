@@ -1,0 +1,37 @@
+{% extends "network/layout.html" %}
+
+{% block body %}
+        {% if user.is_authenticated %}
+
+                <h2>{{ profile.user }}</h2>
+                {{ profile.id }}
+                {% if user != profile.user %}
+                        <button type="button" class="btn btn-primary" id="follow-profile-btn" onclick="follow_user({{profile.user.id}})">Follow</button>
+                {% endif %}
+
+
+                <h3>Followers</h3>
+                <ul>
+                        {% if profile.followers %}
+                                {% for follower in profile.followers %}
+                                        <li>{{ follower.user }} </li>
+                                {% endfor %}
+                        {% else %}
+                                <p>No Followers yet :(</p>
+                        {% endif %}
+                </ul>
+
+                <h3>Following</h3>
+                <ul>
+                        {% if profile.following %}
+                                {% for follower in profile.following %}
+                                        <li>{{ following }} </li>
+                                {% endfor %}
+                        {% else %}
+                                <p>Not following anyone yet, click on someone's profile to follow them!</p>
+                        {% endif %}
+                </ul>
+        {% endif %}
+
+
+{% endblock %}
