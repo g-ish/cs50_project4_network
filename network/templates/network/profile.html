@@ -12,26 +12,17 @@
 
                 <h3>Followers</h3>
                 <ul>
-                        {% if profile.followers %}
-                                {% for follower in profile.followers %}
-                                        <li>{{ follower.user }} </li>
-                                {% endfor %}
-                        {% else %}
-                                <p>No Followers yet :(</p>
-                        {% endif %}
+                        {% for follower in profile.followers %}
+                                <li>{{ follower }}</li>
+                        {% endfor %}
                 </ul>
 
                 <h3>Following</h3>
                 <ul>
-                        {% if profile.following %}
-                                {% for follower in profile.following %}
-                                        <li>{{ following }} </li>
-                                {% endfor %}
-                        {% else %}
-                                <p>Not following anyone yet, click on someone's profile to follow them!</p>
-                        {% endif %}
+                        {% for following in profile.following %}
+                                <li>{{ following }}</li>
+                        {% endfor %}
                 </ul>
         {% endif %}
-
 
 {% endblock %}

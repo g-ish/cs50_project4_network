@@ -9,7 +9,9 @@ from django.shortcuts import render, redirect
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import User, NetworkPost, NetworkPostLikeManager, NetworkFollowManager
+from .models import User, NetworkPost, NetworkPostLikeManager
+
+# from .models import NetworkFollowManager
 
 
 def index(request):
@@ -120,34 +122,25 @@ def register(request):
 
 def profile_page(request, profile_id):
     profile_user = User.objects.get(id=profile_id)
-    followers = NetworkFollowManager.objects.filter(user=profile_user)
-    following = NetworkFollowManager.objects.filter(user=profile_user)
 
     profile = {'user': profile_user,
-               'followers' : followers,
-               'following': following}
-    # if request.method == "POST":
-
+               'followers' : profile_user.followers.all(),
+               'following': profile_user.following.all()}
 
     return render(request, "network/profile.html", {'profile': profile})
 
+
 @csrf_exempt
 def follow_profile(request, profile_id):
+
     profile_user = User.objects.get(id=profile_id)
-    try:
-        user_follow_manager = NetworkFollowManager.objects.get(user=request.user)
-        print('user_follow_manager')
-        if  user_follow_manager.followers.filter(id=request.user).exists():
-            print('follow model already exists')
-            user_follow_manager.followers.filter(id=request.user).delete()
-            print("already following, user removed from follower list")
-        else:
-            print("not following")
-            user_follow_manager.following.add(profile_user.id)
-        user_follow_manager.save()
-    except ObjectDoesNotExist:
-        print("Object failed")
-        user_follow_manager = NetworkFollowManager.objects.create(user=request.user.id)
-        user_follow_manager.following.add(profile_user.id)
-        user_follow_manager.save()
+    # followers = profile_user.followers_set.all()
+    followers = profile_user.followers.all()
+
+    print("got profile_user")
+    print(followers)
+
+    request.user.following.add(profile_user)
+    profile_user.followers.add(request.user)
+
     return JsonResponse({"followStatus": "followed"})

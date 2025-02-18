@@ -3,6 +3,8 @@ from django.db import models
 
 
 class User(AbstractUser):
+    following = models.ManyToManyField("self", related_name="following", null=True, blank=True)
+    followers = models.ManyToManyField("self", related_name="followers", null=True, blank=True)
     pass
 
 class NetworkPost(models.Model):
@@ -21,9 +23,9 @@ class NetworkPostLikeManager(models.Model):
     def __str__(self):
         return f'{self.liked_by}'
 
-class NetworkFollowManager(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-
-    following = models.ManyToManyField(User, related_name="following", null=True, blank=True)
-    followers = models.ManyToManyField(User, related_name="followers", null=True, blank=True)
-
+# class NetworkFollowManager(models.Model):
+#     user = models.ForeignKey(User, on_delete=models.CASCADE)
+#
+#     following = models.ManyToManyField(User, related_name="following", null=True, blank=True)
+#     followers = models.ManyToManyField(User, related_name="followers", null=True, blank=True)
+#
