@@ -10,9 +10,7 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 
 from .models import User, NetworkPost, NetworkPostLikeManager
-
 # from .models import NetworkFollowManager
-
 
 def index(request):
     if request.user.is_authenticated:
@@ -124,23 +122,44 @@ def profile_page(request, profile_id):
     profile_user = User.objects.get(id=profile_id)
 
     profile = {'user': profile_user,
-               'followers' : profile_user.followers.all(),
-               'following': profile_user.following.all()}
+               'followers' : profile_user.followers.count(),
+               'following': profile_user.following.count()}
 
     return render(request, "network/profile.html", {'profile': profile})
-
 
 @csrf_exempt
 def follow_profile(request, profile_id):
 
     profile_user = User.objects.get(id=profile_id)
-    # followers = profile_user.followers_set.all()
-    followers = profile_user.followers.all()
-
-    print("got profile_user")
-    print(followers)
-
     request.user.following.add(profile_user)
     profile_user.followers.add(request.user)
 
+    #Todo: This is now broken :( only allows for following, no removing - readd that back in
+
     return JsonResponse({"followStatus": "followed"})
+
+
+# Todo: Add some error checking here for successful and failed api calls.
+@csrf_exempt
+def get_follow_stats(request, profile_id):
+    '''
+    :param request:
+    :param profile_id:
+    :return: JsonResponse of followers and following
+    '''
+    profile_user = User.objects.get(id=profile_id)
+
+    followers = profile_user.followers.all()
+    followers = list(followers.values_list('id', 'username'))
+
+    following = profile_user.following.all()
+    following = list(following.values_list('id', 'username'))
+
+    follower_stats = {
+        'followers': followers,
+        'following' : following
+    }
+
+    return JsonResponse({"follower_stats": follower_stats})
+
+

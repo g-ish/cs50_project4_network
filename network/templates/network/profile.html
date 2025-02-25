@@ -10,19 +10,17 @@
                 {% endif %}
 
 
-                <h3>Followers</h3>
-                <ul>
-                        {% for follower in profile.followers %}
-                                <li>{{ follower }}</li>
-                        {% endfor %}
-                </ul>
+                <h3 onclick="get_follow_stats('followers', {{profile.user.id}})">Followers: {{profile.followers}}</h3>
+                <div id="follower-overlay" style="visibility: hidden;">
+                    <a href="javascript:void(0)" class="closebtn" onclick="closeFollower()">&times;</a>
+                </div>
 
-                <h3>Following</h3>
-                <ul>
-                        {% for following in profile.following %}
-                                <li>{{ following }}</li>
-                        {% endfor %}
-                </ul>
+<!--if more than 1, create a javascript link to create a popup 'level' to scroll and view all followers/following-->
+
+                <h3 onclick="get_follow_stats('following', {{profile.user.id}})">Following: {{profile.following}} </h3>
+                <div id="following-overlay" style="visibility: hidden;">
+                    <a href="javascript:void(0)" class="closebtn" onclick="closeFollowing()">&times;</a>
+                </div>
         {% endif %}
 
 {% endblock %}
