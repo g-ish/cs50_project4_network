@@ -28,44 +28,17 @@ function follow_user(profile_id) {
     .then(r => {
         if (r.followStatus == "followed"){
             document.getElementById(`follow-profile-btn`).innerHTML = "Unfollow"
+            count = parseInt(document.getElementById(`follower-count`).innerHTML) + 1
+            document.getElementById(`follower-count`).innerHTML = count
+        } else if (r.followStatus == "unfollowed"){
+            document.getElementById(`follow-profile-btn`).innerHTML = "follow"
+            count = parseInt(document.getElementById(`follower-count`).innerHTML) - 1
+            document.getElementById(`follower-count`).innerHTML = count
+        } else {
+            console.log("Something went wrong with the follow/unfollow feature")
         }
     })
 };
-
-//function display_follow_stats(followType, profile_id) {
-//    fetch('get_follow_stats/', {
-//        method: "GET",
-//        body: JSON.stringify({
-//            profile_id: profile_id
-//        })
-//    }).then(response => response.json())
-//    .then(r => {
-//        if (r.status == 200) {
-//                console.log('Response ok')
-//                console.log(r.follower_stats)
-//        } else {
-//            console.log('Failed to get response')
-//        }
-//    })
-//}
-
-//function display_follow_stats(followType, profile_id) {
-//    fetch('get_follow_stats/', {
-//        method: "GET",
-//    }).then(response => response.json())
-//    .then(r => {
-//        console.log(r.status)
-//        if (r.status === 200) {
-//            console.log('Response ok')
-//        }
-//        if (r.status == 200) {
-//                console.log('Response ok')
-//                console.log(r.follower_stats)
-//        } else {
-//            console.log('Failed to get response')
-//        }
-//    })
-//}
 
 
 function get_follow_stats(followType, profile_id) {
@@ -88,65 +61,42 @@ function display_follow_stats(followType, data){
     console.log(data)
     data = data['follower_stats']
 
+    // create the background of the follower/following list
+    let followStatsOverlay = document.createElement("div")
+    followStatsOverlay.id = "follow-stats-overlay"
 
+    // create the list containing our follow(ers/ings)
+    let followStatList = document.createElement("div")
+    followStatList.id = "follow-stat-list"
 
     if (followType === 'followers') {
-        // build the follower list
-        let followerOverlay = document.getElementById("follower-overlay")
-        followerOverlay.style.visibility = "visible";
-        let followerList = document.createElement("div")
-        followerList.id = "follower-list"
-        followerList.textContent = "Followers"
-        followerOverlay.appendChild(followerList)
-
-        for (let i = 0; i < data[followType].length; i++ ){
-            let followerLink = document.createElement("a")
-            followerLink.href = "/profile/" + data[followType][i][0]
-            let follower = document.createElement("li")
-            follower.innerText = data[followType][i][1]
-
-            followerLink.appendChild(follower)
-            followerList.appendChild(followerLink)
-            console.log(data[followType][i][1])
-        }
-
-    } else if (followType === 'following') {
-        // build the following list
-        let followingOverlay = document.getElementById("following-overlay")
-        followingOverlay.style.visibility = "visible";
-        let followingList = document.createElement("div")
-        followingList.id = "following-list"
-        followingOverlay.appendChild(followingList)
-
-        for (let i = 0; i < data[followType].length; i++ ){
-            let followingLink = document.createElement("a")
-            followingLink.href = "/profile/" + data[followType][i][0]
-            let following = document.createElement("li")
-            following.innerText = data[followType][i][1]
-
-            followingLink.appendChild(following)
-            followingList.appendChild(followingLink)
-            console.log(data[followType][i][1])
-        }
+        followStatList.textContent = "Followers"
+    } else if (followType == 'following') {
+        followStatList.textContent = "Following"
     }
-}
+    followStatsOverlay.appendChild(followStatList)
 
-function closeFollower() {
-  document.getElementById("follower-overlay").style.visibility = "hidden";
+    // build the list of follow(ers/ings)
+    for (let i = 0; i < data[followType].length; i++ ){
+        let followStatLink = document.createElement("a")
+        followStatLink.href = "/profile/" + data[followType][i][0]
+        let followStatUser = document.createElement("li")
+        followStatUser.innerText = data[followType][i][1]
 
-  // clear the list contents
-  document.getElementById("follower-list").innerHTML = '';
+        followStatLink.appendChild(followStatUser)
+        followStatList.appendChild(followStatLink)
+    }
+    document.body.appendChild(followStatsOverlay)
 
-  // remove the list itself
-  document.getElementById("follower-list").remove();
-}
+    // if the user clicks outside of the visible list, close the overlay
+    document.addEventListener("click", function(evt) {
+        target = evt.target;
+        if (target == followStatsOverlay) {
+            followStatList.remove();
+            followStatsOverlay.remove();
+        }
+    })
 
-function closeFollowing() {
-  document.getElementById("following-overlay").style.visibility = "hidden";
+};
 
-  // clear the list contents
-  document.getElementById("following-list").innerHTML = '';
 
-  // remove the list itself
-  document.getElementById("following-list").remove();
-}
