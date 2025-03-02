@@ -3,6 +3,7 @@ import pickle
 
 from django.contrib.auth import authenticate, login, logout
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.paginator import Paginator
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, redirect
@@ -10,9 +11,13 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 
 from .models import User, NetworkPost, NetworkPostLikeManager
-# from .models import NetworkFollowManager
+from .models import FollowManager
+
 
 def index(request):
+    # Todo: add the pagination in here
+    # Backend: https://docs.djangoproject.com/en/4.0/topics/pagination/
+    # Frontend: https://getbootstrap.com/docs/4.4/components/pagination/
     if request.user.is_authenticated:
         posts = NetworkPost.objects.all().order_by('-timestamp')[:10]
         for post in posts:
@@ -22,9 +27,26 @@ def index(request):
             else:
                 post.liked = False
 
+        pag = Paginator(posts, 10)
+        print(pag.page_range)
+
         return render(request, "network/index.html", {'posts': posts})
 
     return render(request, "network/index.html")
+
+
+def view_following(request):
+
+    # get the users that are being followed by the logged-in account
+    following = FollowManager.objects.filter(followers=request.user)
+    following_users = []
+    # convert the queryset to a list of user ids
+    for user in following:
+        following_users.append(user.user.id)
+    # filter for all posts by the followed users
+    posts = NetworkPost.objects.filter(author__in=following_users)
+
+    return render(request, "network/index.html", {'posts': posts})
 
 
 @csrf_exempt
@@ -107,7 +129,10 @@ def register(request):
         # Attempt to create new user
         try:
             user = User.objects.create_user(username, email, password)
-            user.save()
+            follow_manager = FollowManager(user=user)
+            follow_manager.save()
+        except Exception as e:
+            print(e)
         except IntegrityError:
             return render(request, "network/register.html", {
                 "message": "Username already taken."
@@ -121,23 +146,35 @@ def register(request):
 def profile_page(request, profile_id):
     profile_user = User.objects.get(id=profile_id)
 
+    try:
+        follow_manager = FollowManager.objects.get(user=profile_id)
+    except FollowManager.DoesNotExist:
+        follow_manager = FollowManager(user=request.user)
+        follow_manager.save()
+
     profile = {'user': profile_user,
-               'followers' : profile_user.followers.count(),
-               'following': profile_user.following.count()}
+               'followers': follow_manager.followers.count(),
+               'following': follow_manager.following.count()}
 
     return render(request, "network/profile.html", {'profile': profile})
 
+
 @csrf_exempt
 def follow_profile(request, profile_id):
+    target_profile = User.objects.get(id=profile_id)
+    # if the profile is already being followed then remove from each FollowManager object
+    try:
+        user_follow_manager = FollowManager.objects.get(user=request.user, following=target_profile)
+        target_profile_manager = FollowManager.objects.get(user=target_profile, followers=request.user)
+        user_follow_manager.following.remove(target_profile)
+        target_profile_manager.followers.remove(request.user)
+        return JsonResponse({"followStatus": "unfollowed"})
 
-    profile_user = User.objects.get(id=profile_id)
-    request.user.following.add(profile_user)
-    profile_user.followers.add(request.user)
-
-    #Todo: This is now broken :( only allows for following, no removing - readd that back in
-
-    return JsonResponse({"followStatus": "followed"})
-
+    # create a new followerObject
+    except FollowManager.DoesNotExist:
+        FollowManager.objects.get(user=request.user).following.add(target_profile)
+        FollowManager.objects.get(user=target_profile).followers.add(request.user)
+        return JsonResponse({"followStatus": "followed"})
 
 # Todo: Add some error checking here for successful and failed api calls.
 @csrf_exempt
@@ -146,20 +183,24 @@ def get_follow_stats(request, profile_id):
     :param request:
     :param profile_id:
     :return: JsonResponse of followers and following
-    '''
-    profile_user = User.objects.get(id=profile_id)
 
-    followers = profile_user.followers.all()
+    
+    '''
+    try:
+        follow_manager = FollowManager.objects.get(user=profile_id)
+    except FollowManager.DoesNotExist:
+        follow_manager = FollowManager(user=request.user)
+        follow_manager.save()
+
+    followers = follow_manager.followers.all()
     followers = list(followers.values_list('id', 'username'))
 
-    following = profile_user.following.all()
+    following = follow_manager.following.all()
     following = list(following.values_list('id', 'username'))
 
     follower_stats = {
         'followers': followers,
-        'following' : following
+        'following': following
     }
 
     return JsonResponse({"follower_stats": follower_stats})
-
-
