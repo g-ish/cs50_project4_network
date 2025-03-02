@@ -13,7 +13,7 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import User, NetworkPost, NetworkPostLikeManager
 from .models import FollowManager
 
-
+#  original index without any pagination
 def index(request):
     # Todo: add the pagination in here
     # Backend: https://docs.djangoproject.com/en/4.0/topics/pagination/
@@ -27,22 +27,47 @@ def index(request):
             else:
                 post.liked = False
 
-        pag = Paginator(posts, 10)
-        print(pag.page_range)
-
         return render(request, "network/index.html", {'posts': posts})
 
     return render(request, "network/index.html")
 
+# Todo: build a 'startup' script that populates users, posts and followers/followings.
+# def index(request):
+#     # Backend: https://docs.djangoproject.com/en/4.0/topics/pagination/
+#     # Frontend: https://getbootstrap.com/docs/4.4/components/pagination/
+#     if request.user.is_authenticated:
+#         posts = NetworkPost.objects.all().order_by('-timestamp')
+#
+#         # this is probably inefficient - it's using a DB query for posts which the user may never even see,
+#         # need to figure out how to only call the DB on visible posts.
+#         for post in posts:
+#             post.likes_count = NetworkPostLikeManager.objects.filter(post=post).count
+#             if NetworkPostLikeManager.objects.filter(post=post, liked_by=request.user).exists():
+#                 post.liked = True
+#             else:
+#                 post.liked = False
+#
+#         paginator = Paginator(posts, 10)
+#         page_number = request.GET.get('page')
+#         page_object = paginator.get_page(page_number)
+#
+#
+#         # return render(request, "network/index.html", {'posts': page_object})
+#         return render(request, "network/index_pagination.html", {'posts': page_object})
+#
+#     return render(request, "network/index.html")
 
 def view_following(request):
 
     # get the users that are being followed by the logged-in account
     following = FollowManager.objects.filter(followers=request.user)
-    following_users = []
-    # convert the queryset to a list of user ids
-    for user in following:
-        following_users.append(user.user.id)
+    # following_users = []
+    # # convert the queryset to a list of user ids
+    # for user in following:
+    #     following_users.append(user.user.id)
+    # convert the queryset to a list of user i
+
+    following_users = [user.user.id for user in following]
     # filter for all posts by the followed users
     posts = NetworkPost.objects.filter(author__in=following_users)
 
