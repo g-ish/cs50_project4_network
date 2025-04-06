@@ -1,5 +1,6 @@
 import json
 import pickle
+from xml.dom.minidom import ProcessingInstruction
 
 from django.contrib.auth import authenticate, login, logout
 from django.core.exceptions import ObjectDoesNotExist
@@ -14,32 +15,9 @@ from .models import User, NetworkPost, NetworkPostLikeManager
 from .models import FollowManager
 
 #  original index without any pagination
-def index(request):
-    # Todo: add the pagination in here
-    # Backend: https://docs.djangoproject.com/en/4.0/topics/pagination/
-    # Frontend: https://getbootstrap.com/docs/4.4/components/pagination/
-    if request.user.is_authenticated:
-        posts = NetworkPost.objects.all().order_by('-timestamp')[:10]
-        for post in posts:
-            post.likes_count = NetworkPostLikeManager.objects.filter(post=post).count
-            if NetworkPostLikeManager.objects.filter(post=post, liked_by=request.user).exists():
-                post.liked = True
-            else:
-                post.liked = False
-
-        return render(request, "network/index.html", {'posts': posts})
-
-    return render(request, "network/index.html")
-
-# Todo: build a 'startup' script that populates users, posts and followers/followings.
 # def index(request):
-#     # Backend: https://docs.djangoproject.com/en/4.0/topics/pagination/
-#     # Frontend: https://getbootstrap.com/docs/4.4/components/pagination/
 #     if request.user.is_authenticated:
-#         posts = NetworkPost.objects.all().order_by('-timestamp')
-#
-#         # this is probably inefficient - it's using a DB query for posts which the user may never even see,
-#         # need to figure out how to only call the DB on visible posts.
+#         posts = NetworkPost.objects.all().order_by('-timestamp')[:10]
 #         for post in posts:
 #             post.likes_count = NetworkPostLikeManager.objects.filter(post=post).count
 #             if NetworkPostLikeManager.objects.filter(post=post, liked_by=request.user).exists():
@@ -47,32 +25,48 @@ def index(request):
 #             else:
 #                 post.liked = False
 #
-#         paginator = Paginator(posts, 10)
-#         page_number = request.GET.get('page')
-#         page_object = paginator.get_page(page_number)
-#
-#
-#         # return render(request, "network/index.html", {'posts': page_object})
-#         return render(request, "network/index_pagination.html", {'posts': page_object})
+#         return render(request, "network/index.html", {'posts': posts})
 #
 #     return render(request, "network/index.html")
 
-def view_following(request):
 
-    # get the users that are being followed by the logged-in account
-    following = FollowManager.objects.filter(followers=request.user)
-    # following_users = []
-    # # convert the queryset to a list of user ids
-    # for user in following:
-    #     following_users.append(user.user.id)
-    # convert the queryset to a list of user i
+def index(request, following_only=None):
+    # Backend: https://docs.djangoproject.com/en/4.0/topics/pagination/
+    # Frontend: https://getbootstrap.com/docs/4.4/components/pagination/
+    if request.user.is_authenticated:
+        posts = NetworkPost.objects.all().order_by('-timestamp')
 
-    following_users = [user.user.id for user in following]
-    # filter for all posts by the followed users
-    posts = NetworkPost.objects.filter(author__in=following_users)
+        # this is probably inefficient - it's using a DB query for posts which the user may never even see,
+        # need to figure out how to only call the DB on visible posts.
+        if following_only == "True":
+            following = FollowManager.objects.filter(followers=request.user)
+            following_users = [user.user.id for user in following]
+            posts = NetworkPost.objects.filter(author__in=following_users).order_by('-timestamp')
+        else:
+            posts = NetworkPost.objects.all().order_by('-timestamp')
 
-    return render(request, "network/index.html", {'posts': posts})
+        for post in posts:
+            post.likes_count = NetworkPostLikeManager.objects.filter(post=post).count
+            if NetworkPostLikeManager.objects.filter(post=post, liked_by=request.user).exists():
+                post.liked = True
+            else:
+                post.liked = False
 
+        paginator = Paginator(posts, 10)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        print(page_obj)
+        print(page_obj.number)
+
+        # return render(request, "network/index.html", {'posts': page_object})
+        return render(request, "network/index.html", {
+            'page_obj': page_obj,
+            'page_count': paginator.num_pages,
+            'current_page': page_obj.number
+        })
+
+    return render(request, "network/index.html")
 
 @csrf_exempt
 # Todo: This probably shouldnt be CSRF Exempt
@@ -229,3 +223,79 @@ def get_follow_stats(request, profile_id):
     }
 
     return JsonResponse({"follower_stats": follower_stats})
+
+
+
+# def create_test_cases(request):
+#     # This just creates a bunch of test data in the live DB because i can't achieve it through test cases,
+#     import random
+#
+#
+#     def create_users():
+#         usernames = []
+#         for i in range(30):
+#             username = 'testUser' + str(i)
+#             User.objects.create_user(username=username, email=username + '@test.com', password=username)
+#
+#             usernames.append((username, i))
+#         return usernames
+#
+#     def create_posts(users):
+#         posts = []
+#         for user in users:
+#             username = user[0]
+#             user = User.objects.get(username=username)
+#             content = 'This is a test post from user: ' + user.username
+#             post = NetworkPost(author=user, content=content)
+#             post.save()
+#             posts.append((user, post, content))
+#         return posts
+#
+#     def follow_random(users):
+#         for user in users:
+#             username = user[0]
+#             profile_1 = User.objects.get(username=username)
+#
+#             random_id = random.choice([num for num in range(30) if num != username[1]])
+#             profile_2 = users[random_id][0]
+#
+#             print(f"randomising follow for {profile_1} with {profile_2}")
+#
+#             rand_follow_selection = random.randint(0, 1)
+#
+#             profile_2 = User.objects.get(username=profile_2)
+#             if rand_follow_selection == 0:
+#                 follow_object = FollowManager.objects.get_or_create(user=profile_1)[0]
+#                 follow_object.following.add(profile_2)
+#                 follow_object.save()
+#
+#                 follow_object = FollowManager.objects.get_or_create(user=profile_2)[0]
+#                 follow_object.followers.add(profile_1)
+#                 follow_object.save()
+#             else:
+#                 follow_object = FollowManager.objects.get_or_create(user=profile_2)[0]
+#                 follow_object.followers.add(profile_1)
+#                 follow_object.save()
+#
+#                 follow_object = FollowManager.objects.get_or_create(user=profile_1)[0]
+#                 follow_object.followers.add(profile_2)
+#                 follow_object.save()
+#
+#         # hard test
+#         profile_a = User.objects.get(username="testUser0")
+#         profile_b = User.objects.get(username="testUser1")
+#
+#         profile_a_following = FollowManager.objects.get_or_create(user=profile_a)[0]
+#         profile_a_following.following.add(profile_b)
+#
+#         profile_b_follower = FollowManager.objects.get_or_create(user=profile_b)[0]
+#         profile_b_follower.followers.add(profile_a)
+#
+#     print("creating users")
+#     usernames = create_users()
+#
+#     print("creating posts")
+#     create_posts(usernames)
+#     follow_random(usernames)
+#
+#     return HttpResponseRedirect(index)
