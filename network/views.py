@@ -34,11 +34,11 @@ def index(request, following_only=None):
     # Backend: https://docs.djangoproject.com/en/4.0/topics/pagination/
     # Frontend: https://getbootstrap.com/docs/4.4/components/pagination/
     if request.user.is_authenticated:
-        posts = NetworkPost.objects.all().order_by('-timestamp')
 
         # this is probably inefficient - it's using a DB query for posts which the user may never even see,
         # need to figure out how to only call the DB on visible posts.
         if following_only == "True":
+            # filter the posts by authors that the user is following
             following = FollowManager.objects.filter(followers=request.user)
             following_users = [user.user.id for user in following]
             posts = NetworkPost.objects.filter(author__in=following_users).order_by('-timestamp')
@@ -55,9 +55,6 @@ def index(request, following_only=None):
         paginator = Paginator(posts, 10)
         page_number = request.GET.get('page')
         page_obj = paginator.get_page(page_number)
-
-        print(page_obj)
-        print(page_obj.number)
 
         # return render(request, "network/index.html", {'posts': page_object})
         return render(request, "network/index.html", {
@@ -171,11 +168,24 @@ def profile_page(request, profile_id):
         follow_manager = FollowManager(user=request.user)
         follow_manager.save()
 
+    posts = NetworkPost.objects.filter(author=request.user).order_by('-timestamp')
+
+    paginator = Paginator(posts, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     profile = {'user': profile_user,
                'followers': follow_manager.followers.count(),
-               'following': follow_manager.following.count()}
+               'following': follow_manager.following.count(),
+               }
 
-    return render(request, "network/profile.html", {'profile': profile})
+
+    return render(request, "network/profile.html", {
+        'profile': profile,
+        'page_obj':page_obj,
+        'page_count':paginator.num_pages,
+        'current_page':page_obj.number
+    })
 
 
 @csrf_exempt

@@ -1,5 +1,5 @@
 function like_post(post_id) {
-    fetch('like_post', {
+    fetch('../../like_post', {
         method: "POST",
         body: JSON.stringify({
             post_id: post_id

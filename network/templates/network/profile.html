@@ -1,5 +1,6 @@
 {% extends "network/layout.html" %}
 
+
 {% block body %}
         {% if user.is_authenticated %}
 
@@ -17,5 +18,9 @@
                 <h3 id="following-count" onclick="get_follow_stats('following', {{profile.user.id}})">Following: {{profile.following}} </h3>
 
         {% endif %}
-
+{% include "network/posts.html" %}
 {% endblock %}
+
+
+
+
